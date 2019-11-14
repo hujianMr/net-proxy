@@ -11,7 +11,7 @@ import (
 func main() {
 	config.InitClientConfig()
 	for _, proxyHost := range config.ClientProxyHosts {
-		go handleProxyPort(proxyHost)
+		go handleProxyPort(strings.TrimSpace(proxyHost))
 	}
 	select {}
 }
@@ -43,8 +43,8 @@ func handleProxyPort(proxyHost string) {
 		log.Println(err)
 		return
 	}
-	go util.ProxyRequest(serverConn, proxyConn)
-	go util.ProxyRequest(proxyConn, serverConn)
+	go util.ProxyRequestNotCloseConn(serverConn, proxyConn)
+	go util.ProxyRequestNotCloseConn(proxyConn, serverConn)
 	select {}
 	/*for{
 		var buffer = make([]byte, 4096000)
