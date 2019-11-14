@@ -41,7 +41,7 @@ func handleClient(client net.Conn) {
 
 	//服务器对端口进行监听  主要监听访问层过来的
 	//这个8091端口是我自己测试用的  因为开发的时候用的同一台机器
-	//proxyPort = "8091"
+	proxyPort = "8091"
 	proxyListen, err := net.Listen("tcp", ":"+proxyPort)
 	if err != nil {
 		log.Println("服务端端口开启监听失败,端口:"+proxyPort, err)
@@ -68,7 +68,7 @@ func handleClient(client net.Conn) {
 		}
 
 		//开启线程互相读写  访问层  》》 服务端  》》 客户端 》》 服务端 》》 访问层
-		go util.ProxyRequest(proxyConn, client)
-		go util.ProxyRequest(client, proxyConn)
+		go util.ProxyRequestNotCloseConn(proxyConn, client)
+		go util.ProxyRequestNotCloseConn(client, proxyConn)
 	}
 }
