@@ -10,8 +10,8 @@ import (
 )
 
 type Request struct {
-	conn net.Conn
-	buff []byte
+	Conn net.Conn
+	Buff []byte
 }
 
 func ListenServer(address string) (net.Listener, error) {
@@ -29,11 +29,11 @@ func ProxySwap(proxyConn net.Conn, client net.Conn) {
 	go ConnCopy(proxyConn, client, &wg)
 	go ConnCopy(client, proxyConn, &wg)
 	wg.Wait()
-	proxyConn.Close()
 }
 func ConnCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	io.Copy(conn1, conn2)
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
+	//conn1.Close()
 	wg.Done()
 }
 

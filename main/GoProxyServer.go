@@ -34,6 +34,8 @@ func main() {
 	}
 }
 
+const timeout = 0
+
 func handleClient(client net.Conn) {
 	buffer := make([]byte, 1024)
 	//第一次连接进来我先要客户端先把代理端口传过来
@@ -58,19 +60,24 @@ func handleClient(client net.Conn) {
 		log.Println("服务端端口开启监听失败,端口:"+proxyPort, err)
 		return
 	}
+	connChan := make(chan proxy_core.Request, 100)
+	//同一个端口的请求通过管道 来实现单线程
+	go func(connChan chan proxy_core.Request) {
+		for {
+			request := <-connChan
+			log.Println(request.Conn.RemoteAddr())
+			proxy_core.ProxySwap(request.Conn, client)
+			request.Conn.Close()
+		}
+	}(connChan)
 	for {
 		proxyConn, err := proxyListen.Accept()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		/*buffer := make([]byte, 1024)
-		n, err := proxyConn.Read(buffer)
-		if err != nil || n <= 0 {
-			fmt.Printf("服务端读取访问客户端》》数据错误, error: %s\n", err.Error())
-			continue
-		}*/
-		//log....
-		proxy_core.ProxySwap(proxyConn, client)
+		connChan <- proxy_core.Request{proxyConn, nil}
+		/*proxy_core.ProxySwap(proxyConn, client)
+		proxyConn.Close()*/
 	}
 }
