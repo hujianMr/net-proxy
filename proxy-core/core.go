@@ -29,6 +29,7 @@ func ProxySwap(proxyConn net.Conn, client net.Conn) {
 	go ConnCopy(proxyConn, client, &wg)
 	go ConnCopy(client, proxyConn, &wg)
 	wg.Wait()
+	log.Println("conn1 = [" + proxyConn.LocalAddr().String() + "], conn2 = [" + client.RemoteAddr().String() + "] iocopy读写完成")
 }
 func ConnCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	_, err := io.Copy(conn1, conn2)
