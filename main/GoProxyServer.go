@@ -66,6 +66,8 @@ func handleClient(client net.Conn) {
 	go func(connChan chan proxy_core.Request) {
 		for {
 			request := <-connChan
+			_ = client.SetDeadline(time.Now().Add(5 * time.Second))
+			_ = request.Conn.SetDeadline(time.Now().Add(5 * time.Second))
 			log.Println(request.Conn.RemoteAddr())
 			proxy_core.ProxySwap(request.Conn, client)
 			request.Conn.Close()
@@ -77,8 +79,6 @@ func handleClient(client net.Conn) {
 			log.Println(err)
 			continue
 		}
-		_ = client.SetDeadline(time.Now().Add(5 * time.Second))
-		_ = proxyConn.SetDeadline(time.Now().Add(5 * time.Second))
 		connChan <- proxy_core.Request{proxyConn, nil}
 		/*proxy_core.ProxySwap(proxyConn, client)
 		proxyConn.Close()*/
