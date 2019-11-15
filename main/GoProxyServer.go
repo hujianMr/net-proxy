@@ -2,6 +2,7 @@ package main
 
 import (
 	"../config"
+	"../proxy-core"
 	"../util"
 	"fmt"
 	"log"
@@ -10,9 +11,16 @@ import (
 )
 
 func main() {
+
+	proxy_core.PrintWelcome()
+
 	config.InitServerConfig()
+	addr := "0.0.0.0:" + config.ServerPort
 	//监听服务端端口
-	serverListen, err := net.Listen("tcp", ":"+config.ServerPort)
+	serverListen, err := proxy_core.ListenServer(addr)
+	if err != nil {
+		log.Fatalf("listen %s fail: %s", addr, err)
+	}
 	util.PanicIfErr(err)
 	log.Println("服务端监听端口:" + config.ServerPort)
 	for {
@@ -41,10 +49,11 @@ func handleClient(client net.Conn) {
 
 	//服务器对端口进行监听  主要监听访问层过来的
 	//这个8091端口是我自己测试用的  因为开发的时候用的同一台机器
-	/*if proxyPort == "8090" {
+	if proxyPort == "8090" {
 		proxyPort = "8091"
-	}*/
-	proxyListen, err := net.Listen("tcp", ":"+proxyPort)
+	}
+	addr := "0.0.0.0:" + proxyPort
+	proxyListen, err := proxy_core.ListenServer(addr)
 	if err != nil {
 		log.Println("服务端端口开启监听失败,端口:"+proxyPort, err)
 		return
@@ -55,22 +64,13 @@ func handleClient(client net.Conn) {
 			log.Println(err)
 			continue
 		}
-		buffer := make([]byte, 1024)
+		/*buffer := make([]byte, 1024)
 		n, err := proxyConn.Read(buffer)
-		if err != nil {
-			fmt.Printf("服务端读取代理客户端数据错误, error: %s\n", err.Error())
+		if err != nil || n <= 0 {
+			fmt.Printf("服务端读取访问客户端》》数据错误, error: %s\n", err.Error())
 			continue
-		}
-
-		n, err = client.Write(buffer[:n])
-		if err != nil {
-			fmt.Printf("服务端写数据到代理客户端错误, error: %s\n", err.Error())
-			proxyConn.Close()
-			continue
-		}
-
-		//开启线程互相读写  访问层  》》 服务端  》》 客户端 》》 服务端 》》 访问层
-		go util.ProxyRequestNotCloseConn(proxyConn, client)
-		go util.ProxyRequestNotCloseConn(client, proxyConn)
+		}*/
+		//log....
+		proxy_core.ProxySwap(proxyConn, client)
 	}
 }

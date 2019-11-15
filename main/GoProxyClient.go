@@ -2,13 +2,16 @@ package main
 
 import (
 	"../config"
-	"../util"
+	"../proxy-core"
 	"log"
 	"net"
 	"strings"
 )
 
 func main() {
+
+	proxy_core.PrintWelcome()
+
 	config.InitClientConfig()
 	for _, proxyHost := range config.ClientProxyHosts {
 		go handleProxyPort(strings.TrimSpace(proxyHost))
@@ -43,8 +46,8 @@ func handleProxyPort(proxyHost string) {
 		log.Println(err)
 		return
 	}
-	go util.ProxyRequestNotCloseConn(serverConn, proxyConn)
-	go util.ProxyRequestNotCloseConn(proxyConn, serverConn)
+	//log.Println(string(buffer[:n]))
+	proxy_core.ProxySwap(serverConn, proxyConn)
 	select {}
 	/*for{
 		var buffer = make([]byte, 4096000)
