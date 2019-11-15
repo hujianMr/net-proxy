@@ -31,7 +31,10 @@ func ProxySwap(proxyConn net.Conn, client net.Conn) {
 	wg.Wait()
 }
 func ConnCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
-	io.Copy(conn1, conn2)
+	_, err := io.Copy(conn1, conn2)
+	if err != nil {
+		log.Println("conn1 = ["+conn1.LocalAddr().String()+"], conn2 = ["+conn2.RemoteAddr().String()+"] iocopy失败", err)
+	}
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
 	//conn1.Close()
 	wg.Done()
