@@ -5,6 +5,7 @@ import (
 	"../proxy-core"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -25,6 +26,8 @@ func main() {
   服务端将外部请求路由到客户端
 */
 func handleProxyPort(proxyHost string) {
+	i := 1
+	log.Println("第" + strconv.Itoa(i) + "次连接----> proxyHost: " + proxyHost)
 	for {
 		proxyPort := strings.Split(proxyHost, ":")[1]
 		log.Println("客户端代理端口: " + proxyPort)
@@ -49,6 +52,8 @@ func handleProxyPort(proxyHost string) {
 		}
 		//log.Println(string(buffer[:n]))
 		proxy_core.ProxySwap(serverConn, proxyConn)
+		i++
+		log.Println("第" + strconv.Itoa(i) + "次连接----> proxyHost: " + proxyHost)
 	}
 
 }

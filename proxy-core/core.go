@@ -43,7 +43,7 @@ func ConnCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 		log.Println("conn1 = ["+conn1.LocalAddr().String()+"], conn2 = ["+conn2.RemoteAddr().String()+"] iocopy失败", err)
 	}
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
-	//conn1.Close()
+	conn1.Close()
 	wg.Done()
 }
 

@@ -94,7 +94,7 @@ func handlerConnChan(connChan chan proxy_core.Request, proxyPort string) {
 		_ = request.Conn.SetDeadline(time.Now().Add(5 * time.Second))*/
 		log.Println(request.Conn.RemoteAddr())
 		proxy_core.ProxySwap(request.Conn, portConnMap[proxyPort].Client)
-		request.Conn.Close()
+		//request.Conn.Close()
 	}
 }
 
