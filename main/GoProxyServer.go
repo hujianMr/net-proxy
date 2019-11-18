@@ -74,6 +74,7 @@ func handleClient(client net.Conn) {
 		v := portConnMap[proxyPort].V + 1
 		server := proxy_core.Server{listen, v, client}
 		portConnMap[proxyPort] = server
+		time.Sleep(2 * time.Second)
 	}
 	//****************************************
 	//同一个端口的请求通过管道 来实现单线程
