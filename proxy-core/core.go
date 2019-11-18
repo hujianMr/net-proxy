@@ -14,6 +14,12 @@ type Request struct {
 	Buff []byte
 }
 
+type Server struct {
+	Server net.Listener
+	V      int
+	Client net.Conn
+}
+
 func ListenServer(address string) (net.Listener, error) {
 	log.Println("监听地址：" + address)
 	server, err := net.Listen("tcp", address)

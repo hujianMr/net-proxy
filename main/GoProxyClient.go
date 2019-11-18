@@ -25,42 +25,30 @@ func main() {
   服务端将外部请求路由到客户端
 */
 func handleProxyPort(proxyHost string) {
-	proxyPort := strings.Split(proxyHost, ":")[1]
-	log.Println("客户端代理端口: " + proxyPort)
-	serverUrl := config.ServerUrl
-	//拨号连接服务端  建立长连接
-	serverConn, err := net.Dial("tcp", serverUrl)
-	if err != nil {
-		log.Println("代理端口:" + proxyPort + " 拨号失败")
-		return
-	}
-	// 把需要代理的内网ip:端口发送给
-	_, err = serverConn.Write([]byte(proxyHost))
-	if err != nil {
-		log.Println("代理端口:" + proxyPort + " 写入端口失败")
-		return
-	}
-	//接收到服务端返回代理请求的时候拨号 客户端代理端口 拨号代理端口
-	proxyConn, err := net.Dial("tcp", proxyHost)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	//log.Println(string(buffer[:n]))
-	proxy_core.ProxySwap(serverConn, proxyConn)
-	select {}
-	/*for{
-		var buffer = make([]byte, 4096000)
-		//读取到服务端数据  代理客户端时跟服务端长连接的 这里监听每次服务端写过的数据
-		n, err := serverConn.Read(buffer)
+	for {
+		proxyPort := strings.Split(proxyHost, ":")[1]
+		log.Println("客户端代理端口: " + proxyPort)
+		serverUrl := config.ServerUrl
+		//拨号连接服务端  建立长连接
+		serverConn, err := net.Dial("tcp", serverUrl)
 		if err != nil {
-			continue
+			log.Println("代理端口:" + proxyPort + " 拨号失败")
+			return
 		}
-		//把服务器数据写到代理端口服务
-		n, err = proxyConn.Write(buffer[:n])
+		// 把需要代理的内网ip:端口发送给
+		_, err = serverConn.Write([]byte(proxyHost))
 		if err != nil {
-			continue
+			log.Println("代理端口:" + proxyPort + " 写入端口失败")
+			return
 		}
+		//接收到服务端返回代理请求的时候拨号 客户端代理端口 拨号代理端口
+		proxyConn, err := net.Dial("tcp", proxyHost)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		//log.Println(string(buffer[:n]))
+		proxy_core.ProxySwap(serverConn, proxyConn)
+	}
 
-	}*/
 }
