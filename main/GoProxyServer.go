@@ -55,6 +55,9 @@ func handleClient(client net.Conn) {
 	/*if proxyPort == "8090" {
 		proxyPort = "8091"
 	}*/
+	if proxyPort == "22" {
+		proxyPort = "10022"
+	}
 	//兼容客户端重连
 	server := portConnMap[proxyPort]
 	if server.Server == nil {
