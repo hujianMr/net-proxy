@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -36,19 +37,22 @@ func handleProxyPort(proxyHost string) {
 		serverConn, err := net.Dial("tcp", serverUrl)
 		if err != nil {
 			log.Println("代理端口:" + proxyPort + " 拨号失败")
-			return
+			time.Sleep(2 * time.Second)
+			continue
 		}
 		// 把需要代理的内网ip:端口发送给
 		_, err = serverConn.Write([]byte(proxyHost))
 		if err != nil {
 			log.Println("代理端口:" + proxyPort + " 写入端口失败")
-			return
+			time.Sleep(2 * time.Second)
+			continue
 		}
 		//接收到服务端返回代理请求的时候拨号 客户端代理端口 拨号代理端口
 		proxyConn, err := net.Dial("tcp", proxyHost)
 		if err != nil {
 			log.Println(err)
-			return
+			time.Sleep(2 * time.Second)
+			continue
 		}
 		//log.Println(string(buffer[:n]))
 		proxy_core.ProxySwap(serverConn, proxyConn)
