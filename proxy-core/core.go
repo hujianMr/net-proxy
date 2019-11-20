@@ -15,12 +15,21 @@ type Request struct {
 }
 
 type Server struct {
-	Server net.Listener
-	V      int
-	Client net.Conn
+	Server    net.Listener
+	V         int
+	Client    net.Conn
+	ProxyPort string
 }
 
-func ListenServer(address string) (net.Listener, error) {
+func (s *Server) Expire(V int) bool {
+	if s.V < V {
+		return true
+	}
+	return false
+}
+
+func ListenServer(proxyPort string) (net.Listener, error) {
+	address := "0.0.0.0:" + proxyPort
 	log.Println("监听地址：" + address)
 	server, err := net.Listen("tcp", address)
 	if err != nil {

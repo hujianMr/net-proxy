@@ -15,7 +15,7 @@ func main() {
 	proxy_core.PrintWelcome()
 
 	config.InitClientConfig()
-	for _, proxyHost := range config.ClientProxyHosts {
+	for _, proxyHost := range config.GlobalConfig.ClientProxyHosts {
 		go handleProxyPort(strings.TrimSpace(proxyHost))
 	}
 	select {}
@@ -32,7 +32,7 @@ func handleProxyPort(proxyHost string) {
 	for {
 		proxyPort := strings.Split(proxyHost, ":")[1]
 		log.Println("客户端代理端口: " + proxyPort)
-		serverUrl := config.ServerUrl
+		serverUrl := config.GlobalConfig.ServerUrl
 		//拨号连接服务端  建立长连接
 		serverConn, err := net.Dial("tcp", serverUrl)
 		if err != nil {
