@@ -93,9 +93,9 @@ func handleClient(client net.Conn) {
 	}
 	proxyPort := proxyAddr.Port
 	//服务器对端口进行监听  主要监听访问层过来的
-	if proxyPort == "8090" {
+	/*if proxyPort == "8090" {
 		proxyPort = "8091"
-	}
+	}*/
 	//兼容客户端重连
 	server := fetchServer(proxyPort, client)
 	if server.Server == nil {
