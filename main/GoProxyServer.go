@@ -52,7 +52,7 @@ func fetchServer(proxyPort string, client net.Conn) proxy_core.Server {
 		portConnMap[proxyPort] = server
 	}
 	//替换新的结构体 新的结构体周期增加
-	portConnMap[proxyPort] = portConnMap[proxyPort].IncrCycle(client)
+	portConnMap[proxyPort] = server.IncrCycle(client)
 	return server
 }
 
