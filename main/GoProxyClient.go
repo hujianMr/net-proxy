@@ -3,6 +3,8 @@ package main
 import (
 	"../config"
 	"../proxy-core"
+	"bytes"
+	"encoding/binary"
 	"log"
 	"net"
 	"strings"
@@ -36,22 +38,34 @@ func handleProxyPort(proxyHost string) {
 		log.Printf("connection times=(%d) , proxyPort = %s\n", i, proxyPort)
 		//拨号连接服务端
 		serverConn = dial(serverUrl)
-		//拨号代理端口
-		proxyConn = dial(proxyHost)
+
 		// 把需要代理的内网ip:端口发送给
-		if err := write(serverConn, []byte(proxyHost)); err != nil {
+		if err := write(serverConn, proxyHost); err != nil {
 			log.Printf("first write failure > port = %s", proxyHost)
 			proxy_core.Close(serverConn, proxyConn)
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		//拨号代理端口
+		proxyConn = dial(proxyHost)
 		proxy_core.ProxySwap(serverConn, proxyConn)
 
 	}
 }
 
-func write(conn net.Conn, bytes []byte) error {
-	_, err := conn.Write(bytes)
+/**
+  处理报文头 固定长度
+*/
+func write(conn net.Conn, content string) error {
+	_contentbytes := []byte(content)
+	len := int32(len(_contentbytes))
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	_ = binary.Write(bytesBuffer, binary.BigEndian, len)
+	_lenBytes := bytesBuffer.Bytes()
+	var buffer bytes.Buffer
+	buffer.Write(_lenBytes)
+	buffer.Write(_contentbytes)
+	_, err := conn.Write(buffer.Bytes())
 	return err
 }
 

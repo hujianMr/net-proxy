@@ -4,6 +4,8 @@ import (
 	"../config"
 	"../proxy-core"
 	"../util"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
@@ -73,10 +75,22 @@ func (p *ProxyAddress) toString() string {
 var portConnMap = make(map[string]proxy_core.Server)
 
 func firstConn(client net.Conn) ProxyAddress {
-	buffer := make([]byte, 1024)
+	var proxyAddr ProxyAddress
+	buffer := make([]byte, 4)
 	//第一次连接进来我先要客户端先把代理端口传过来
 	n, err := client.Read(buffer)
-	var proxyAddr ProxyAddress
+	if err != nil {
+		fmt.Printf("Unable to read from input, error: %s\n", err.Error())
+		return proxyAddr
+	}
+	//读取报文长度
+	var len int32
+	err = binary.Read(bytes.NewBuffer(buffer[:n]), binary.BigEndian, &len)
+	if err != nil {
+		return proxyAddr
+	}
+	buffer = make([]byte, len)
+	n, err = client.Read(buffer)
 	if err != nil {
 		fmt.Printf("Unable to read from input, error: %s\n", err.Error())
 		return proxyAddr
