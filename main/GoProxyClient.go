@@ -5,7 +5,6 @@ import (
 	"../proxy-core"
 	"log"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -27,37 +26,44 @@ func main() {
   服务端将外部请求路由到客户端
 */
 func handleProxyPort(proxyHost string) {
-	i := 1
-	log.Println("第" + strconv.Itoa(i) + "次连接----> proxyHost: " + proxyHost)
+	proxyPort := strings.Split(proxyHost, ":")[1]
+	log.Printf("proxy client port = %s\n ", proxyPort)
+	var proxyConn, serverConn net.Conn
+	serverUrl := config.GlobalConfig.ServerUrl
+	i := 0
 	for {
-		proxyPort := strings.Split(proxyHost, ":")[1]
-		log.Println("客户端代理端口: " + proxyPort)
-		serverUrl := config.GlobalConfig.ServerUrl
-		//拨号连接服务端  建立长连接
-		serverConn, err := net.Dial("tcp", serverUrl)
-		if err != nil {
-			log.Println("代理端口:" + proxyPort + " 拨号失败")
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		// 把需要代理的内网ip:端口发送给
-		_, err = serverConn.Write([]byte(proxyHost))
-		if err != nil {
-			log.Println("代理端口:" + proxyPort + " 写入端口失败")
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		//接收到服务端返回代理请求的时候拨号 客户端代理端口 拨号代理端口
-		proxyConn, err := net.Dial("tcp", proxyHost)
-		if err != nil {
-			log.Println(err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		//log.Println(string(buffer[:n]))
-		proxy_core.ProxySwap(serverConn, proxyConn)
 		i++
-		log.Println("第" + strconv.Itoa(i) + "次连接----> proxyHost: " + proxyHost)
-	}
+		log.Printf("connection times=(%d) , proxyPort = %s\n", i, proxyPort)
+		//拨号连接服务端
+		serverConn = dial(serverUrl)
+		//拨号代理端口
+		proxyConn = dial(proxyHost)
+		// 把需要代理的内网ip:端口发送给
+		if err := write(serverConn, []byte(proxyHost)); err != nil {
+			log.Printf("first write failure > port = %s", proxyHost)
+			proxy_core.Close(serverConn, proxyConn)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		proxy_core.ProxySwap(serverConn, proxyConn)
 
+	}
+}
+
+func write(conn net.Conn, bytes []byte) error {
+	_, err := conn.Write(bytes)
+	return err
+}
+
+func dial(dialUrl string) net.Conn {
+	log.Printf("client start dial > url = %s", dialUrl)
+	for {
+		conn, err := net.Dial("tcp", dialUrl)
+		if err == nil {
+			log.Printf("dial success > url = %s", dialUrl)
+			return conn
+		}
+		log.Printf("dial failure > url = %s, errmsg = %s\n", dialUrl, err.Error())
+		time.Sleep(3 * time.Second)
+	}
 }

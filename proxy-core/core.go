@@ -21,11 +21,29 @@ type Server struct {
 	ProxyPort string
 }
 
+func (s *Server) IncrCycle(client net.Conn) Server {
+	s.V++
+	s.Client = client
+	return Server{
+		Server:    s.Server,
+		V:         s.V,
+		Client:    s.Client,
+		ProxyPort: s.ProxyPort,
+	}
+}
+
 func (s *Server) Expire(V int) bool {
 	if s.V < V {
 		return true
 	}
 	return false
+}
+
+// 关闭连接
+func Close(cons ...net.Conn) {
+	for _, conn := range cons {
+		_ = conn.Close()
+	}
 }
 
 func ListenServer(proxyPort string) (net.Listener, error) {

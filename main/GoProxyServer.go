@@ -18,11 +18,8 @@ func main() {
 	config.InitServerConfig()
 	//监听服务端端口
 	serverListen, err := proxy_core.ListenServer(config.GlobalConfig.ServerPort)
-	if err != nil {
-		log.Fatalf("listen %s fail: %s", config.GlobalConfig.ServerPort, err)
-	}
 	util.PanicIfErr(err)
-	log.Println("服务端监听端口:" + config.GlobalConfig.ServerPort)
+	log.Printf("server listen port = %s\n:", config.GlobalConfig.ServerPort)
 	for {
 		client, err := serverListen.Accept()
 		if err != nil {
@@ -34,24 +31,28 @@ func main() {
 	}
 }
 
+func _pakServer(server net.Listener, v int, client net.Conn, proxyPort string) proxy_core.Server {
+	return proxy_core.Server{
+		Server:    server,
+		V:         v,
+		Client:    client,
+		ProxyPort: proxyPort,
+	}
+}
+
 func fetchServer(proxyPort string, client net.Conn) proxy_core.Server {
 	server := portConnMap[proxyPort]
 	if server.Server == nil {
 		proxyListen, err := proxy_core.ListenServer(proxyPort)
 		if err != nil {
-			log.Println("服务端端口开启监听失败,端口:"+proxyPort, err)
+			log.Printf("server port listen failure, port = %s, errs = %s\n", proxyPort, err.Error())
 			return proxy_core.Server{}
 		}
-		server = proxy_core.Server{proxyListen, 0, client, proxyPort}
+		server = _pakServer(proxyListen, 0, client, proxyPort)
 		portConnMap[proxyPort] = server
-	} else {
-		//如果之前已经对这个端口发起过监听, 需要阻断之前得
-		listen := portConnMap[proxyPort].Server
-		v := portConnMap[proxyPort].V + 1
-		server := proxy_core.Server{listen, v, client, proxyPort}
-		portConnMap[proxyPort] = server
-		time.Sleep(2 * time.Second)
 	}
+	//替换新的结构体 新的结构体周期增加
+	portConnMap[proxyPort] = portConnMap[proxyPort].IncrCycle(client)
 	return server
 }
 
@@ -66,7 +67,7 @@ func (p *ProxyAddress) convert(proxyHost string) {
 }
 
 func (p *ProxyAddress) toString() string {
-	return "代理的ip:" + p.Ip + " 代理的端口" + p.Port
+	return fmt.Sprintf("proxy id = %s proxy port = %s", p.Ip, p.Port)
 }
 
 var portConnMap = make(map[string]proxy_core.Server)
@@ -92,23 +93,19 @@ func handleClient(client net.Conn) {
 		return
 	}
 	proxyPort := proxyAddr.Port
-	//服务器对端口进行监听  主要监听访问层过来的
-	/*if proxyPort == "8090" {
-		proxyPort = "8091"
-	}*/
 	//兼容客户端重连
 	server := fetchServer(proxyPort, client)
 	if server.Server == nil {
 		return
 	}
-	//****************************************
-	//同一个端口的请求通过管道 来实现单线程
+	//希望所有的请求进入管道
 	connChan := make(chan proxy_core.Request, 100)
 	go handlerConnChan(connChan, proxyPort)
-	//****************************************
+
 	server = portConnMap[proxyPort]
 	go accept(server, connChan)
 	for {
+		//当前版本号不匹配
 		if server.Expire(portConnMap[server.ProxyPort].V) {
 			return
 		}
@@ -119,8 +116,6 @@ func handleClient(client net.Conn) {
 func handlerConnChan(connChan chan proxy_core.Request, proxyPort string) {
 	for {
 		request := <-connChan
-		/*_ = client.SetDeadline(time.Now().Add(5 * time.Second))
-		_ = request.Conn.SetDeadline(time.Now().Add(5 * time.Second))*/
 		log.Println(request.Conn.RemoteAddr())
 		go proxy_core.ProxySwap(request.Conn, portConnMap[proxyPort].Client)
 	}
