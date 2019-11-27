@@ -57,14 +57,14 @@ func handleProxyPort(proxyHost string) {
   处理报文头 固定长度
 */
 func write(conn net.Conn, content string) error {
-	_contentbytes := []byte(content)
-	len := int32(len(_contentbytes))
+	_contentBytes := []byte(content)
+	len := int32(len(_contentBytes))
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	_ = binary.Write(bytesBuffer, binary.BigEndian, len)
 	_lenBytes := bytesBuffer.Bytes()
 	var buffer bytes.Buffer
 	buffer.Write(_lenBytes)
-	buffer.Write(_contentbytes)
+	buffer.Write(_contentBytes)
 	_, err := conn.Write(buffer.Bytes())
 	return err
 }
