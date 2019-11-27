@@ -1,4 +1,4 @@
-## go-huj-net-proxy 网络代理服务
+## net-proxy 网络代理服务
 ### 背景
 &nbsp;&nbsp;&nbsp;&nbsp; 家里路由器wan口不是外网ip，或者外网ip不固定，解决家里内网穿透问题    
 
