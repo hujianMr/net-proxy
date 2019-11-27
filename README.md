@@ -1,6 +1,6 @@
 ## net-proxy 网络代理服务
 ### 背景
-&nbsp;&nbsp;&nbsp;&nbsp; 家里路由器wan口不是外网ip，或者外网ip不固定，解决家里内网穿透问题    
+&nbsp;&nbsp;&nbsp;&nbsp; 家里路由器wan口不是外网ip，或者外网ip不固定，解决家里内网穿透问题,并且支持多端口内网穿透       
 
 ### 实现方式
 &nbsp;&nbsp;&nbsp;&nbsp; 1. 开发服务端，服务端部署在一个配置低的阿里云服务器        
