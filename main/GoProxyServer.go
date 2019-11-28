@@ -113,11 +113,11 @@ func handleClient(client net.Conn) {
 		return
 	}
 	//希望所有的请求进入管道
-	connChan := make(chan proxy_core.Request, 100)
-	go handlerConnChan(connChan, proxyPort)
+	/*connChan := make(chan proxy_core.Request, 100)
+	go handlerConnChan(connChan, proxyPort)*/
 
 	server = portConnMap[proxyPort]
-	go accept(server, connChan)
+	go accept(server, callback, proxyPort)
 	for {
 		//当前版本号不匹配
 		if server.Expire(portConnMap[server.ProxyPort].V) {
@@ -127,25 +127,32 @@ func handleClient(client net.Conn) {
 	}
 }
 
-func handlerConnChan(connChan chan proxy_core.Request, proxyPort string) {
+func callback(src net.Conn, dest net.Conn) {
+	proxy_core.ProxyIoBind(&src, dest)
+}
+
+/*func handlerConnChan(connChan chan proxy_core.Request, proxyPort string) {
 	for {
 		request := <-connChan
 		log.Println(request.Conn.RemoteAddr())
 		go proxy_core.ProxySwap(request.Conn, portConnMap[proxyPort].Client)
 	}
-}
+}*/
 
-func accept(server proxy_core.Server, connChan chan proxy_core.Request) {
+func accept(server proxy_core.Server, fn func(src net.Conn, dest net.Conn), proxyPort string) {
 	for {
 		if server.Expire(portConnMap[server.ProxyPort].V) {
 			return
 		}
-		proxyConn, err := server.Server.Accept()
+		var srcConn net.Conn
+		srcConn, err := server.Server.Accept()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		fmt.Println(proxyConn)
-		connChan <- proxy_core.Request{proxyConn, nil}
+		go func() {
+			fn(srcConn, portConnMap[proxyPort].Client)
+		}()
+		//connChan <- proxy_core.Request{proxyConn, nil}
 	}
 }
