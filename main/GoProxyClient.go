@@ -3,6 +3,7 @@ package main
 import (
 	"../config"
 	"../proxy-core"
+	"../util"
 	"bytes"
 	"encoding/binary"
 	"log"
@@ -32,6 +33,7 @@ func handleProxyPort(proxyHost string) {
 	log.Printf("proxy client port = %s\n ", proxyPort)
 	var proxyConn, serverConn net.Conn
 	serverUrl := config.GlobalConfig.ServerUrl
+	//proxyPool := config.InitPool(proxyHost)
 	i := 0
 	for {
 		i++
@@ -48,6 +50,7 @@ func handleProxyPort(proxyHost string) {
 		}
 		//拨号代理端口
 		proxyConn = dial(proxyHost)
+		//proxyConn = proxyPool.Get()
 		proxy_core.ProxySwap(serverConn, proxyConn)
 
 	}
@@ -58,12 +61,8 @@ func handleProxyPort(proxyHost string) {
 */
 func write(conn net.Conn, content string) error {
 	_contentBytes := []byte(content)
-	len := int32(len(_contentBytes))
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	_ = binary.Write(bytesBuffer, binary.BigEndian, len)
-	_lenBytes := bytesBuffer.Bytes()
 	var buffer bytes.Buffer
-	buffer.Write(_lenBytes)
+	buffer.Write(util.IntToBytes(len(_contentBytes)))
 	buffer.Write(_contentBytes)
 	_, err := conn.Write(buffer.Bytes())
 	return err

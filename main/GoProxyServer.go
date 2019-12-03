@@ -10,7 +10,6 @@ import (
 	"log"
 	"net"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -21,7 +20,7 @@ func main() {
 	//监听服务端端口
 	serverListen, err := proxy_core.ListenServer(config.GlobalConfig.ServerPort)
 	util.PanicIfErr(err)
-	log.Printf("server listen port = %s\n:", config.GlobalConfig.ServerPort)
+	log.Printf("server listen port = %s\n", config.GlobalConfig.ServerPort)
 	for {
 		client, err := serverListen.Accept()
 		if err != nil {
@@ -43,7 +42,7 @@ func _pakServer(server net.Listener, v int, client net.Conn, proxyPort string) p
 }
 
 func fetchServer(proxyPort string, client net.Conn) proxy_core.Server {
-	server := portConnMap[proxyPort]
+	server := serverMap[proxyPort]
 	if server.Server == nil {
 		proxyListen, err := proxy_core.ListenServer(proxyPort)
 		if err != nil {
@@ -51,10 +50,10 @@ func fetchServer(proxyPort string, client net.Conn) proxy_core.Server {
 			return proxy_core.Server{}
 		}
 		server = _pakServer(proxyListen, 0, client, proxyPort)
-		portConnMap[proxyPort] = server
+		serverMap[proxyPort] = server
 	}
 	//替换新的结构体 新的结构体周期增加
-	portConnMap[proxyPort] = server.IncrCycle(client)
+	serverMap[proxyPort] = server.IncrCycle(client)
 	return server
 }
 
@@ -72,7 +71,7 @@ func (p *ProxyAddress) toString() string {
 	return fmt.Sprintf("proxy id = %s proxy port = %s", p.Ip, p.Port)
 }
 
-var portConnMap = make(map[string]proxy_core.Server)
+var serverMap = make(map[string]proxy_core.Server)
 
 func firstConn(client net.Conn) ProxyAddress {
 	var proxyAddr ProxyAddress
@@ -112,23 +111,21 @@ func handleClient(client net.Conn) {
 	if server.Server == nil {
 		return
 	}
+	if server.Expire(2) {
+		return
+	}
 	//希望所有的请求进入管道
 	/*connChan := make(chan proxy_core.Request, 100)
 	go handlerConnChan(connChan, proxyPort)*/
 
-	server = portConnMap[proxyPort]
-	go accept(server, callback, proxyPort)
-	for {
-		//当前版本号不匹配
-		if server.Expire(portConnMap[server.ProxyPort].V) {
-			return
-		}
-		time.Sleep(2 * time.Second)
-	}
+	server = serverMap[proxyPort]
+	go accept(callback, proxyPort)
+	select {}
 }
 
 func callback(src net.Conn, dest net.Conn) {
 	proxy_core.ProxyIoBind(&src, dest)
+	//proxy_core.ProxySwap(src, dest)
 }
 
 /*func handlerConnChan(connChan chan proxy_core.Request, proxyPort string) {
@@ -139,19 +136,17 @@ func callback(src net.Conn, dest net.Conn) {
 	}
 }*/
 
-func accept(server proxy_core.Server, fn func(src net.Conn, dest net.Conn), proxyPort string) {
+func accept(fn func(src net.Conn, dest net.Conn), proxyPort string) {
 	for {
-		if server.Expire(portConnMap[server.ProxyPort].V) {
-			return
-		}
 		var srcConn net.Conn
-		srcConn, err := server.Server.Accept()
+		srcConn, err := serverMap[proxyPort].Server.Accept()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
+
 		go func() {
-			fn(srcConn, portConnMap[proxyPort].Client)
+			fn(srcConn, serverMap[proxyPort].Client)
 		}()
 		//connChan <- proxy_core.Request{proxyConn, nil}
 	}
