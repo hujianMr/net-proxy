@@ -2,19 +2,18 @@ package main
 
 import (
 	"../config"
-	"../proxy-core"
-	"../util"
-	"bytes"
+	"../proxy_core"
 	"encoding/binary"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
 
 func main() {
-
-	proxy_core.PrintWelcome()
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	//proxy_core.PrintWelcome()
 
 	config.InitClientConfig()
 	for _, proxyHost := range config.GlobalConfig.ClientProxyHosts {
@@ -29,43 +28,73 @@ func main() {
   服务端将外部请求路由到客户端
 */
 func handleProxyPort(proxyHost string) {
-	proxyPort := strings.Split(proxyHost, ":")[1]
-	log.Printf("proxy client port = %s\n ", proxyPort)
-	var proxyConn, serverConn net.Conn
+	proxyPort, _ := strconv.Atoi(strings.Split(proxyHost, ":")[1])
 	serverUrl := config.GlobalConfig.ServerUrl
-	//proxyPool := config.InitPool(proxyHost)
-	i := 0
-	for {
-		i++
-		log.Printf("connection times=(%d) , proxyPort = %s\n", i, proxyPort)
-		//拨号连接服务端
-		serverConn = dial(serverUrl)
 
-		// 把需要代理的内网ip:端口发送给
-		if err := write(serverConn, proxyHost); err != nil {
-			log.Printf("first write failure > port = %s", proxyHost)
-			proxy_core.Close(serverConn, proxyConn)
-			time.Sleep(2 * time.Second)
-			continue
+	connChan := make(chan net.Conn)
+	flagChan := make(chan bool)
+
+	// 拨号
+	go func(connCh chan net.Conn, flagCh chan bool) {
+		for {
+			select {
+			case <-flagCh:
+				go func(ch chan net.Conn) {
+					conn := dial(serverUrl)
+					if conn == nil {
+						return
+					}
+
+					if !requestConn(conn, proxyPort) {
+						log.Println("Fail to request conn,", proxyPort)
+						_ = conn.Close()
+						return
+					}
+					ch <- conn
+				}(connCh)
+			default:
+				// default
+			}
 		}
-		//拨号代理端口
-		proxyConn = dial(proxyHost)
-		//proxyConn = proxyPool.Get()
-		proxy_core.ProxySwap(serverConn, proxyConn)
+	}(connChan, flagChan)
 
-	}
+	// 连接
+	go func(connCh chan net.Conn, flagCh chan bool) {
+		for {
+			select {
+			case cn := <-connCh:
+				go func(conn net.Conn) {
+					localConn := dial(proxyHost)
+					if localConn == nil {
+						_ = conn.Close()
+						flagCh <- true // 通知创建连接
+						return
+					}
+					flagCh <- true // 通知创建连接
+					proxy_core.ProxySwap(localConn, conn)
+				}(cn)
+			default:
+				// default
+			}
+		}
+	}(connChan, flagChan)
+
+	// 初始化连接
+	flagChan <- true
 }
 
-/**
-  处理报文头 固定长度
-*/
-func write(conn net.Conn, content string) error {
-	_contentBytes := []byte(content)
-	var buffer bytes.Buffer
-	buffer.Write(util.IntToBytes(len(_contentBytes)))
-	buffer.Write(_contentBytes)
-	_, err := conn.Write(buffer.Bytes())
-	return err
+func requestConn(conn net.Conn, proxyPort int) bool {
+	port := int32(proxyPort)
+	if err := binary.Write(conn, binary.BigEndian, port); err != nil {
+		log.Println("Fail to send conn header", err)
+		return false
+	}
+	var resp int32
+	if err := binary.Read(conn, binary.BigEndian, &resp); err != nil {
+		return false
+	}
+	log.Println("proxy service", port)
+	return true
 }
 
 func dial(dialUrl string) net.Conn {

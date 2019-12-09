@@ -2,7 +2,7 @@ package config
 
 import (
 	"../util"
-	"github.com/Unknwon/goconfig/goconfig-master"
+	"github.com/unknwon/goconfig"
 	"strings"
 )
 
@@ -34,17 +34,17 @@ func InitClientConfig() {
 	util.PanicIfErrMsg(err, "serverUrl参数配置为空")
 }
 
-func GetMappingPort(port string) string {
-	realPort := portMapping[port]
-	if realPort == "" {
-		realPort = port
+func GetRealPort(port int32) int32 {
+	if realPort, ok := portMapping[port]; ok {
+		return realPort
 	}
-	return realPort
+	return port
 }
 
-var portMapping = make(map[string]string)
+var portMapping = make(map[int32]int32)
 
 func initPortMapping() {
-	portMapping["22"] = "10022"
-	portMapping["80"] = "10080"
+	portMapping[22] = 10022
+	portMapping[80] = 10080
+	portMapping[3306] = 13306
 }

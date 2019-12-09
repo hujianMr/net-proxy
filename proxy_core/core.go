@@ -21,7 +21,7 @@ type Server struct {
 	Server    net.Listener
 	V         int
 	Client    net.Conn
-	ProxyPort string
+	ProxyPort int32
 }
 
 func (s *Server) IncrCycle(client net.Conn) Server {
@@ -49,8 +49,8 @@ func Close(cons ...net.Conn) {
 	}
 }
 
-func ListenServer(proxyPort string) (net.Listener, error) {
-	address := "0.0.0.0:" + proxyPort
+func ListenServer(proxyPort int32) (net.Listener, error) {
+	address := fmt.Sprintf("0.0.0.0:%d", proxyPort)
 	log.Println("listen addr ：" + address)
 	server, err := net.Listen("tcp", address)
 	if err != nil {
@@ -174,15 +174,16 @@ func ProxySwap(proxyConn net.Conn, client net.Conn) {
 	go ConnCopy(proxyConn, client, &wg)
 	go ConnCopy(client, proxyConn, &wg)
 	wg.Wait()
-	log.Println("conn1 = [" + proxyConn.LocalAddr().String() + "], conn2 = [" + client.RemoteAddr().String() + "] iocopy读写完成")
+	//log.Println("conn1 = [" + proxyConn.LocalAddr().String() + "], conn2 = [" + client.RemoteAddr().String() + "] iocopy读写完成")
 }
 func ConnCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	_, err := io.Copy(conn1, conn2)
 	if err != nil {
-		log.Println("conn1 = ["+conn1.LocalAddr().String()+"], conn2 = ["+conn2.RemoteAddr().String()+"] iocopy失败", err)
+		// 连接中断，不打印日志
+		//log.Println("conn1 = ["+conn1.LocalAddr().String()+"], conn2 = ["+conn2.RemoteAddr().String()+"] iocopy失败", err)
 	}
-	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
-	conn1.Close()
+	//log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
+	_ = conn1.Close()
 	wg.Done()
 }
 
