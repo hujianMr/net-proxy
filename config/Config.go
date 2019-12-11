@@ -46,5 +46,5 @@ var portMapping = make(map[int32]int32)
 func initPortMapping() {
 	portMapping[22] = 10022
 	portMapping[80] = 10080
-	portMapping[3306] = 13306
+	//portMapping[3306] = 13306
 }
