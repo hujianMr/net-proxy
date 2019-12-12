@@ -86,9 +86,11 @@ func handleClient(client net.Conn) {
 		return
 	}
 	// 发送连接通知, 注意 port 必须是 int32
-	if err := binary.Write(client, binary.BigEndian, proxyPort); err == nil {
+	if proxy_core.WritePort(client, proxyPort) {
 		proxy_core.ProxySwap(srcConn, serverMap[proxyPort].Client)
 	} else {
+		_ = client.Close()
+		_ = srcConn.Close()
 		log.Println("fail to conn", err)
 	}
 }

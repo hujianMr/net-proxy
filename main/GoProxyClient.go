@@ -44,13 +44,13 @@ func handleProxyPort(proxyHost string) {
 					if conn == nil {
 						return
 					}
-
-					if !requestConn(conn, proxyPort) {
-						log.Println("Fail to request conn,", proxyPort)
-						_ = conn.Close()
+					if requestConn(conn, proxyPort) {
+						ch <- conn
 						return
 					}
-					ch <- conn
+					log.Println("Bridge connection interrupted,", proxyPort)
+					_ = conn.Close()
+					flagCh <- true
 				}(connCh)
 			default:
 				// default
@@ -85,8 +85,7 @@ func handleProxyPort(proxyHost string) {
 
 func requestConn(conn net.Conn, proxyPort int) bool {
 	port := int32(proxyPort)
-	if err := binary.Write(conn, binary.BigEndian, port); err != nil {
-		log.Println("Fail to send conn header", err)
+	if !proxy_core.WritePort(conn, port) {
 		return false
 	}
 	var resp int32
@@ -106,6 +105,6 @@ func dial(dialUrl string) net.Conn {
 			return conn
 		}
 		log.Printf("dial failure > url = %s, errmsg = %s\n", dialUrl, err.Error())
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
